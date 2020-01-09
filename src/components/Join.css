@@ -1,0 +1,74 @@
+/* The switch - the box around the slider */
+.switch_join {
+  position: relative;
+  display: inline-block;
+  width: 25vmin;
+  height: 12.5vmin;
+}
+
+/* Hide default HTML checkbox */
+.switch_join input_join {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider_join {
+  position: absolute;
+  cursor: pointer;
+  font-size: 8vmin;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 1vmin;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: black;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.lang{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 1.5vmin;
+}
+
+.slider_join:before {
+  position: absolute;
+  content: "";
+  height: 10vmin;
+  width: 10vmin;
+  left: 1vmin;
+  bottom: 1vmin;
+  background-color: transparent;
+  border: 1px solid white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider_join {
+  background-color: black;
+}
+
+input:focus + .slider_join {
+  box-shadow: 0 0 1px black;
+}
+
+input:checked + .slider_join:before {
+  -webkit-transform: translateX(12.5vmin);
+  -ms-transform: translateX(12.5vmin);
+  transform: translateX(12.5vmin);
+}
+
+/* Rounded sliders */
+.slider_join.round {
+  border-radius: 34px;
+}
+

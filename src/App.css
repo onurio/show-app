@@ -1,0 +1,56 @@
+.App {
+  text-align: center;
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+
+
+.main {
+  background-color: #282c34;
+  min-height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(12px + 1.5vmin);
+  color: white;
+}
+
+
+.button {
+  background-color: white;
+  font-family: 'Alef', sans-serif;
+  font-size: calc(12px + 2vmin);
+  font-weight: bold;
+  cursor: pointer;
+  border: solid 0px;
+  border-radius: 12px;
+  padding: 3vh 6vmin;
+  border-color: white;
+  border: solid 0.3vmin;
+  color:#1B2631;
+  margin: 10vh;
+}
+
+
+.name {
+  background-color: #282c34;
+  font-family: 'Alef', sans-serif;
+  font-size: calc(12px + 2vmin);
+  font-weight: bold;
+  border: solid 0px;
+  padding: 3vh 6vmin;
+  width: 20vw;
+  border-bottom: solid 0.3vmin white;
+  color:white;
+  margin: 5vh;
+  text-align: center;
+}
