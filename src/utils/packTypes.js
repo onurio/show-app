@@ -3,10 +3,6 @@ const sp = require('schemapack');
 
 module.exports.stringSchema = sp.build('string');
 
-module.exports.generalSchema = sp.build({
-    name: 'string',
-    data: 'buffer'
-});
 
 module.exports.idNameSchema = sp.build([
     {
@@ -17,6 +13,7 @@ module.exports.idNameSchema = sp.build([
     name: 'string'
 }]);
 
+
 module.exports.userStateSchema = sp.build({
     id: 'string',
     state: 'bool'
@@ -24,6 +21,7 @@ module.exports.userStateSchema = sp.build({
 
 module.exports.midiMessageSchema = sp.build(['uint8','uint8']);
 
+// module.exports.intSchema = 
 
 module.exports.emptyEvent = (name)=>{
     return(

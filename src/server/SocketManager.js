@@ -1,15 +1,19 @@
 const io = require('./index.js').io;
 var sp = require('schemapack');
-const {USER_JOINED,ADMIN_JOINED,MIDIIN,MAXADMIN_JOINED,USER_STATE_CHANGED,SEND_USER_LIST} = require('../Events.js');
-const {midiMessageSchema} = require('../utils/packTypes');
+const {USER_JOINED,ADMIN_JOINED,MIDIIN,MAXADMIN_JOINED,USER_STATE_CHANGED,SEND_USER_LIST,MIDIOUT} = require('../Events.js');
+const {midiMessageSchema,stringSchema} = require('../utils/packTypes');
 const connectedUsers = {};
 const idName={};
 
-let counter = 0;
+let pianoCounter = 0;
+let pingPongCounter = 0;
 let idList = [];
 let notes = {};
 let maxAdmin;
 let Admin;
+
+let activePlayers = {};
+let activeIdList = [];
 
 
 let appName;
@@ -17,13 +21,16 @@ let appName;
 let phonePianoMode ='free';
 
 
-
 module.exports = (socket) =>{
+
+    
+
+    socket.binaryType = 'arraybuffer';
+
 
     socket.on(ADMIN_JOINED,()=>{
         console.log('admin joined');
         socket.join('admin');
-        Admin = socket;
         socket.emit(SEND_USER_LIST,idName);
     });
 
@@ -32,9 +39,12 @@ module.exports = (socket) =>{
     });
 
     socket.on(MAXADMIN_JOINED,()=>{
-        socket.join('admin');
-        maxAdmin = socket;
+        socket.join('maxadmin');
         console.log(`max admin ${socket.id} joined`);
+        socket.on('phonepiano_mode',(msg)=>{
+            phonePianoMode = msg;
+            io.sockets.emit('phonepiano_mode',phonePianoMode);
+        });
     });
 
     socket.on(USER_JOINED,(name)=>{
@@ -50,22 +60,77 @@ module.exports = (socket) =>{
 
     
     socket.on(MIDIIN,(msg)=>{
-        playNotes(midiMessageSchema.decode(msg)); 
+        switch(appName){
+            case 'phonePiano':
+                playNotes(midiMessageSchema.decode(msg)); 
+                break;
+            case 'sampleTriggerer':
+                if(midiMessageSchema.decode(msg)[1]>0){
+                    io.sockets.binary(true).emit('noteon',midiMessageSchema.encode(msg));
+                }
+                break;
+            default:
+                return;
+        }
+        
     });
+
+
+    socket.on('pi',()=>{
+        io.to('maxadmin').emit(MIDIOUT);
+        pingPong();
+    });
+
+    socket.on('pim',()=>{
+        pingPong();
+    });
+
+
+    socket.on('pipo_start',()=>{  
+        activePlayers = {...connectedUsers};  
+        activeIdList = Object.keys(activePlayers);    
+        pingPong();
+    });
+
+
+    socket.on('pipo_stop',()=>{
+        console.log('stopppped');
+    });
+
+    socket.on('pingPong_dis',(id)=>{
+        id = stringSchema.decode(id);
+        delete activePlayers[id];
+        activeIdList = Object.keys(activePlayers);
+        if(activeIdList.length > 1){
+            pingPongCounter =  pingPongCounter % activeIdList.length;
+        }else{
+            console.log(activePlayers[activeIdList[0]].name +' is the winner!');
+            activePlayers[activeIdList[0]].emit('pp_win');
+            io.to('general').binary(true).emit('pp_win_name',stringSchema.encode(activePlayers[activeIdList[0]].name));
+            activePlayers = {...connectedUsers};  
+            activeIdList = Object.keys(activePlayers);    
+            pingPong();
+        }
+    });
+    
+    
+
+
+
+
 
     socket.on('appName',(name)=>{
         appName = name
-        io.sockets.emit('app',name);
+        io.sockets.binary(true).emit('app',stringSchema.encode(name));
     });
 
     socket.on('getApp',()=>{
-        io.sockets.emit('app',appName);
+        if(appName!=undefined){
+            io.sockets.binary(true).emit('app',stringSchema.encode(appName));
+        }
     });
 
-    socket.on('phonepiano_mode',(msg)=>{
-        phonePianoMode = msg;
-        io.sockets.emit('phonepiano_mode',phonePianoMode);
-    });
+
 
     socket.on('get_phonepiano_mode',()=>{
         socket.emit('phonepiano_mode',phonePianoMode);
@@ -75,13 +140,10 @@ module.exports = (socket) =>{
     
     socket.on('disconnect',()=>{
         if(socket.name){
-            delete idName[socket.id];
+            delete idName[socket.name];
             delete connectedUsers[socket.id];
-            idList.findIndex((index)=>{
-                idList.splice(index,1);
-            });
-            console.log(connectedUsers);
-            io.to('superadmin').emit('users_sockets',idName);
+            idList = [...Object.keys(connectedUsers)];
+            io.to('admin').emit(SEND_USER_LIST,idName);
             console.log(`user ${socket.name} disconnected`);
         }
         
@@ -95,8 +157,8 @@ const playNotes = (note) =>{
                 connectedUsers[idList[counter]].binary(true).emit('noteon',midiMessageSchema.encode(note));
             }
             notes[note[0]] = idList[counter];
-            counter++;
-            counter = counter % idList.length;
+            pianoCounter++;
+            pianoCounter = pianoCounter % idList.length;
         }else{
             if(connectedUsers[notes[note[0]]]){
                 connectedUsers[notes[note[0]]].binary(true).emit('noteoff',midiMessageSchema.encode(note));
@@ -106,5 +168,15 @@ const playNotes = (note) =>{
         }
     }else{
         console.log('no users connected');
+    }
+}
+
+
+
+const pingPong=()=>{
+    if(activeIdList.length>1){        
+        activePlayers[activeIdList[pingPongCounter]].emit('po');
+        pingPongCounter++;
+        pingPongCounter = pingPongCounter % activeIdList.length;
     }
 }
