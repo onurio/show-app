@@ -1,8 +1,7 @@
 import React,{useState,useEffect,useRef} from 'react';
 import Tone from 'tone';
 import {midiMessageSchema} from '../utils/packTypes';
-
-
+import {rainbow } from '../utils/utils';
 
 
 Tone.context.latencyHint = 'interactive';
@@ -11,7 +10,10 @@ const waveform = new Tone.Analyser('waveform',1024);
 
 
 
-let synth = new Tone.PolySynth(6, Tone.Synth, {oscillator: {type:'triangle'}}).connect(waveform).toMaster();
+
+const delay = new Tone.FeedbackDelay().toMaster();
+const tremolo = new Tone.Tremolo();
+let synth = new Tone.PolySynth(6, Tone.Synth, {oscillator: {type:'triangle'}}).chain(tremolo,delay,waveform);
 synth.volume.value = -5;
 synth.set({
   "envelope" : {
@@ -19,7 +21,6 @@ synth.set({
     decay : 0.3 ,
     sustain : 0.3 ,
     release : 0.05
-
   }
 });
 
@@ -34,6 +35,11 @@ export const PhonePiano = (props) =>{
   const [mode,setMode] = useState('free');
 
   
+  const frqToColor = (frq)=>{
+    let color = rainbow(2,frq/2);    
+    return color;
+  }
+  
 
     useEffect(()=>{
       switch(mode){
@@ -44,7 +50,7 @@ export const PhonePiano = (props) =>{
             let frq = Tone.Midi(note[0]).toFrequency();
             synth.triggerAttack(frq);
             setCurrentNote(Tone.Frequency(frq).toNote()); 
-            let color = `rgb(${Math.round(((frq%440)/440)*255)},${Math.round(((frq%220)/220)*255)},${Math.round(((frq%880)/880)*255)})`;
+            let color = frqToColor(frq);
             setBgColor(color);
           });
           props.socket.on('noteoff',(note)=>{
@@ -64,11 +70,12 @@ export const PhonePiano = (props) =>{
             let frq = Tone.Midi(note[0]).toFrequency();
             synth.triggerAttackRelease(frq,(mode/1000));
             setCurrentNote(Tone.Frequency(frq).toNote()); 
-            let color = `rgb(${Math.round(((frq%440)/440)*255)},${Math.round(((frq%220)/220)*255)},${Math.round(((frq%880)/880)*255)})`;
+            let color = frqToColor(frq);
             setBgColor(color);
             return;
         });
       };
+      
     },[props.socket,mode]);
 
     useEffect(()=>{
@@ -77,7 +84,10 @@ export const PhonePiano = (props) =>{
       // eslint-disable-next-line
       canvasCtx = canvas.current.getContext("2d");
       draw();
-
+      return ()=>{
+        props.socket.off('noteon');
+        props.socket.off('noteoff');
+      }
       
     },[]);
 
@@ -114,8 +124,9 @@ export const PhonePiano = (props) =>{
         <div className="App">
           <div style={{backgroundColor:bgColor,zIndex:'1',position:'absolute',top:0,left:0,width:'100vw',height:'100vh',justifyContent:'center',display:'flex',fontSize:'20vmin',padding:'10vh 0'}}>
             {currentNote}
+
           </div>
-          <canvas ref={canvas}  style={{zIndex:'999',width:window.innerWidth,height:window.innerHeight}} width={window.innerWidth*2} height={window.innerHeight*2} id='oscilloscope'/>
+          <canvas ref={canvas}  style={{zIndex:'80',width:window.innerWidth,height:window.innerHeight}} width={window.innerWidth*2} height={window.innerHeight*2} id='oscilloscope'/>
         </div>
       );
 }

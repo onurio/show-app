@@ -1,9 +1,10 @@
 const io = require('./index.js').io;
 var sp = require('schemapack');
-const {USER_JOINED,ADMIN_JOINED,MIDIIN,MAXADMIN_JOINED,USER_STATE_CHANGED,SEND_USER_LIST,MIDIOUT} = require('../Events.js');
-const {midiMessageSchema,stringSchema} = require('../utils/packTypes');
+const {USER_JOINED,ADMIN_JOINED,MIDIIN,MAXADMIN_JOINED,USER_STATE_CHANGED,SEND_USER_LIST,MIDIOUT,VISUAL_JOINED} = require('../Events.js');
+const {midiMessageSchema,stringSchema,intSchema,noteBgSchema} = require('../utils/packTypes');
 const connectedUsers = {};
 const idName={};
+const {rainbow} = require('../utils/utils');
 
 let pianoCounter = 0;
 let pingPongCounter = 0;
@@ -13,7 +14,11 @@ let maxAdmin;
 let Admin;
 
 let activePlayers = {};
+let passivePlayers = {};
 let activeIdList = [];
+
+let pingPongInterval;
+
 
 
 let appName;
@@ -22,8 +27,6 @@ let phonePianoMode ='free';
 
 
 module.exports = (socket) =>{
-
-    
 
     socket.binaryType = 'arraybuffer';
 
@@ -41,10 +44,17 @@ module.exports = (socket) =>{
     socket.on(MAXADMIN_JOINED,()=>{
         socket.join('maxadmin');
         console.log(`max admin ${socket.id} joined`);
-        socket.on('phonepiano_mode',(msg)=>{
+        
+    });
+
+    socket.on('phonepiano_mode',(msg)=>{
             phonePianoMode = msg;
             io.sockets.emit('phonepiano_mode',phonePianoMode);
-        });
+    });
+
+    socket.on(VISUAL_JOINED,()=>{
+        console.log(`visual ${socket.id} joined`);
+        socket.join('visual');
     });
 
     socket.on(USER_JOINED,(name)=>{
@@ -66,7 +76,8 @@ module.exports = (socket) =>{
                 break;
             case 'sampleTriggerer':
                 if(midiMessageSchema.decode(msg)[1]>0){
-                    io.sockets.binary(true).emit('noteon',midiMessageSchema.encode(msg));
+                    io.sockets.binary(true).emit('noteon',noteBgSchema.encode({note: msg,bg:rainbow(Math.round(Math.random()*20),Math.random()*20) }));
+                    // io.sockets.binary(true).emit('bg',stringSchema.encode(rainbow(Math.round(Math.random()*8),Math.random()*8)));
                 }
                 break;
             default:
@@ -77,21 +88,30 @@ module.exports = (socket) =>{
 
 
     socket.on('pi',()=>{
-        io.to('maxadmin').emit(MIDIOUT);
+        clearInterval(pingPongInterval);
+        io.to('maxadmin').emit(MIDIOUT,intSchema.encode(1));
+        io.to('visual').emit(MIDIOUT);
         pingPong();
+        io.to('spectators').binary(false).emit('bg',stringSchema.encode(rainbow(Math.round(Math.random()*8),Math.random()*8)));
     });
 
     socket.on('pim',()=>{
+        clearInterval(pingPongInterval);        
+        io.to('maxadmin').emit(MIDIOUT,intSchema.encode(2));
         pingPong();
     });
 
 
-    socket.on('pipo_start',()=>{  
+    socket.on('pipo_start',()=>{
+        // pingPongSafety();
         activePlayers = {...connectedUsers};  
         activeIdList = Object.keys(activePlayers);    
         pingPong();
+        
     });
 
+
+    
 
     socket.on('pipo_stop',()=>{
         console.log('stopppped');
@@ -99,17 +119,26 @@ module.exports = (socket) =>{
 
     socket.on('pingPong_dis',(id)=>{
         id = stringSchema.decode(id);
+        activePlayers[id].join('spectators');
         delete activePlayers[id];
         activeIdList = Object.keys(activePlayers);
+        io.to('spectators').binary(true).emit('pp_players',intSchema.encode(activeIdList.length));
         if(activeIdList.length > 1){
             pingPongCounter =  pingPongCounter % activeIdList.length;
         }else{
+            clearInterval(pingPongInterval);
             console.log(activePlayers[activeIdList[0]].name +' is the winner!');
             activePlayers[activeIdList[0]].emit('pp_win');
-            io.to('general').binary(true).emit('pp_win_name',stringSchema.encode(activePlayers[activeIdList[0]].name));
-            activePlayers = {...connectedUsers};  
-            activeIdList = Object.keys(activePlayers);    
-            pingPong();
+            io.to('spectators').binary(true).emit('pp_win_name',stringSchema.encode(activePlayers[activeIdList[0]].name));
+            idList.forEach((id)=>{
+                connectedUsers[id].leave('spectators');
+            });
+            setTimeout(()=>{
+                activePlayers = {...connectedUsers};  
+                activeIdList = Object.keys(activePlayers); 
+                appName = 'pingPong'
+                io.to('general').binary(true).emit('pp_reset');   
+            },4000);
         }
     });
     
@@ -141,6 +170,8 @@ module.exports = (socket) =>{
     socket.on('disconnect',()=>{
         if(socket.name){
             delete idName[socket.name];
+            delete activePlayers[socket.id];
+            activeIdList = [...Object.keys(activePlayers)];
             delete connectedUsers[socket.id];
             idList = [...Object.keys(connectedUsers)];
             io.to('admin').emit(SEND_USER_LIST,idName);
@@ -153,10 +184,10 @@ module.exports = (socket) =>{
 const playNotes = (note) =>{
     if(idList.length>0){ 
         if(note[1]>0){
-            if(connectedUsers[idList[counter]]){
-                connectedUsers[idList[counter]].binary(true).emit('noteon',midiMessageSchema.encode(note));
+            if(connectedUsers[idList[pianoCounter]]){
+                connectedUsers[idList[pianoCounter]].binary(true).emit('noteon',midiMessageSchema.encode(note));
             }
-            notes[note[0]] = idList[counter];
+            notes[note[0]] = idList[pianoCounter];
             pianoCounter++;
             pianoCounter = pianoCounter % idList.length;
         }else{
@@ -174,9 +205,19 @@ const playNotes = (note) =>{
 
 
 const pingPong=()=>{
-    if(activeIdList.length>1){        
+    if(activeIdList.length>1){
         activePlayers[activeIdList[pingPongCounter]].emit('po');
         pingPongCounter++;
         pingPongCounter = pingPongCounter % activeIdList.length;
+        pingPongSafety();
     }
 }
+
+const pingPongSafety = ()=>{
+    pingPongInterval = setTimeout(()=>{
+        console.log('safetycalled');
+        
+        pingPong();
+    },5000);
+}
+

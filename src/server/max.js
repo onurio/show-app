@@ -2,7 +2,7 @@ const maxApi  = require('max-api');
 const io = require('socket.io-client');
 const {MAXADMIN_JOINED,MIDIIN,MIDIOUT} = require('../Events.js');
 const sp = require('schemapack');
-const {midiMessageSchema} = require('../utils/packTypes');
+const {midiMessageSchema,intSchema} = require('../utils/packTypes');
 
 
 let appName = undefined;
@@ -13,8 +13,13 @@ maxApi.addHandler('connect',(url)=>{
     socket = io(url);
     socket.emit(MAXADMIN_JOINED);
     // socket.on('users',(users)=>maxApi.outlet(users));
-    socket.on(MIDIOUT,()=>{   
-        maxApi.outletBang();     
+    socket.on(MIDIOUT,(msg)=>{   
+        msg = intSchema.decode(msg);
+        if(msg === 1){
+            maxApi.outlet(1);
+        } else {
+            maxApi.outlet(2);
+        }
     });
 });
 

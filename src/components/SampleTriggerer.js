@@ -1,7 +1,9 @@
 import React,{useState,useEffect,useRef} from 'react';
 import Tone from 'tone';
-import {midiMessageSchema} from '../utils/packTypes';
-import clap from '../samples/clap.wav';
+import satie from '../samples/Satie.mp3';
+import { noteBgSchema } from '../utils/packTypes';
+import {hexToComplimentary} from '../utils/utils';
+import text from '../utils/text';
 
 
 
@@ -9,30 +11,39 @@ Tone.context.latencyHint = 'interactive';
 const waveform = new Tone.Analyser('waveform',1024);
 
 var sampler = new Tone.Sampler({
-	"C3" : clap
+  "C3" : satie,
 }).chain(waveform).toMaster();
+
+sampler.volume.value = -10;
+
+
 
 
 
 
 export const SampleTriggerer = (props) =>{
-  const [bgColor,setBgColor]=useState('black');
-//   const [currentNote,setCurrentNote] = useState(null);
+  const [bgColor,setBgColor]=useState('white');
+  const [textColor,setTextColor] = useState('white');
   const canvas = useRef(null);
   let canvasCtx;
-//   const [mode,setMode] = useState('free');
 
+
+  const trigger=msg=>{
+    msg = noteBgSchema.decode(msg);
+    // let note = msg.note;
+    
+    let bg = msg.bg;
+    setBgColor(bg);
+    setTextColor(hexToComplimentary(bg))
+    sampler.triggerAttack('C3');
+  }
   
 
     useEffect(()=>{
-          props.socket.on('noteon',(note)=>{
-            // note = midiMessageSchema.decode(note);
-            let frq = Tone.Midi(note[0]).toFrequency();
-            sampler.triggerAttack('C3');
-            // setCurrentNote(Tone.Frequency(frq).toNote()); 
-            let color = `rgb(${Math.round(((frq%440)/440)*255)},${Math.round(((frq%220)/220)*255)},${Math.round(((frq%880)/880)*255)})`;
-            setBgColor(color);
-        });
+        props.socket.on('noteon',trigger);
+        return ()=>{
+          props.socket.removeListener('noteon',trigger);
+        };
     },[props.socket]);
 
     useEffect(()=>{
@@ -52,7 +63,6 @@ export const SampleTriggerer = (props) =>{
       canvasCtx.fillStyle = 'rgb(0,0,0,0)';
       canvasCtx.lineWidth = 4;
       canvasCtx.clearRect(0, 0, window.innerWidth*2, window.innerHeight*2);
-      // console.log(bgColor);
       canvasCtx.fillRect(0,0,window.innerWidth*2, window.innerHeight*2);
       canvasCtx.beginPath();
       for (var i = 0; i < waveArray.length; i+=4) {
@@ -63,7 +73,7 @@ export const SampleTriggerer = (props) =>{
           canvasCtx.lineTo(x, (window.innerHeight)+waveArray[i]*(window.innerHeight));
         }
       }
-      canvasCtx.strokeStyle = '#ffffff'
+      canvasCtx.strokeStyle = 'black';
       canvasCtx.stroke();
     }
 
@@ -72,10 +82,12 @@ export const SampleTriggerer = (props) =>{
 
     return (
         <div className="App">
-          <div style={{backgroundColor:bgColor,zIndex:'1',position:'absolute',top:0,left:0,width:'100vw',height:'100vh',justifyContent:'center',display:'flex',fontSize:'20vmin',padding:'10vh 0'}}>
-            {/* {currentNote} */}
+          <div style={{backgroundColor:bgColor,color: textColor,zIndex:'1',position:'absolute',top:0,left:0,width:'100vw',height:'100%',justifyContent:'center',display:'flex',flexDirection:'column',fontSize:'15vmin',padding:'0 0'}}>
+            
+            <h4 style={{marginBottom:'30vh'}}>{text.sampleTriggerer[props.lang].text}</h4>
+            <h6>{text.sampleTriggerer[props.lang].inst}</h6>
           </div>
-          <canvas ref={canvas}  style={{zIndex:'999',width:window.innerWidth,height:window.innerHeight}} width={window.innerWidth*2} height={window.innerHeight*2} id='oscilloscope'/>
+          <canvas ref={canvas}  style={{zIndex:'80',width:window.innerWidth,height:window.innerHeight}} width={window.innerWidth*2} height={window.innerHeight*2} id='oscilloscope'/>
         </div>
       );
     }

@@ -21,7 +21,12 @@ module.exports.userStateSchema = sp.build({
 
 module.exports.midiMessageSchema = sp.build(['uint8','uint8']);
 
-// module.exports.intSchema = 
+module.exports.intSchema = sp.build('uint8');
+
+module.exports.noteBgSchema = sp.build({
+    note: ['uint8','uint8'],
+    bg: 'string'
+});
 
 module.exports.emptyEvent = (name)=>{
     return(

@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { PhonePiano } from '../components/PhonePiano';
 import {SampleTriggerer} from '../components/SampleTriggerer';
-import text from '../utils/text';
+// import text from '../utils/text';
 import { PingPong } from '../components/PingPong';
 import { PingPongSpectator } from '../components/PingPongSpectator';
+import { WaitingScreen } from '../components/WaitingScreen';
 
 export const CurrentAppContainer = (props) =>{
     useEffect(()=>{
@@ -13,12 +14,14 @@ export const CurrentAppContainer = (props) =>{
         case 'phonePiano':
             return <PhonePiano socket={props.socket}/>;
         case 'sampleTriggerer':
-            return <SampleTriggerer socket={props.socket} />;
+            return <SampleTriggerer socket={props.socket} lang={props.lang} />;
         case 'pingPong':
             return <PingPong setApp={props.setApp} socket={props.socket} lang={props.lang} />;
         case 'pingPongSpectator':
-            return <PingPongSpectator/>;
+            return <PingPongSpectator setApp={props.setApp} lang={props.lang} socket={props.socket} />;
+        case 'waitingScreen':
+            return <WaitingScreen lang={props.lang} />
         default:
-            return <h1>{text.waiting[props.lang]}</h1>;
+            return <WaitingScreen lang={props.lang} />;
     };
 };

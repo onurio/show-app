@@ -44,7 +44,7 @@ export const Join=(props)=> {
           <p style={{padding:'5vmin'}}>{text.join.p[props.lang]}</p>
           <h1>{text.join.h1[props.lang]}</h1>
           <input type='text' className="name" name="name" onKeyDown={handleEnter} onChange={handleChange} value={name}></input>
-          <button className='button' onClick={handleJoin}>{text.join.button[props.lang]} {name}</button>
+          <button className='button'   onClick={handleJoin}>{text.join.button[props.lang]} {name}</button>
         </div>
       </div>
     );

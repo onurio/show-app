@@ -5,13 +5,13 @@ import {User} from './User';
 // let userList=[];
 
 export const Admin =props=>{
-    const [users,setUsers] = useState({});
+    // const [users,setUsers] = useState({});
     const [userList,setUserList] = useState([]);
 
     useEffect(()=>{
         props.socket.emit(ADMIN_JOINED);
         props.socket.on(SEND_USER_LIST,(usersNew)=>{
-            setUsers(usersNew);
+            // setUsers(usersNew);
             updateUserList(usersNew);
         });
         // eslint-disable-next-line
