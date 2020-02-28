@@ -1,12 +1,17 @@
-import React,{useState} from 'react';
+import React,{useState, useEffect} from 'react';
 import {Join} from '../components/Join';
 import { CurrentAppContainer } from './currentAppContainer';
 import text from '../utils/text';
+import signal from '../images/wifi.svg';
+import noSignal from '../images/no-wifi.svg';
 
 export const ClientContainer =props=>{
     const [page,setPage] = useState('join');
     const [lang,setLang] = useState('EN');
     const [instWidth,setInstWidth] = useState(0);
+    // const [isConnected,setIsConnected] = useState(true);
+    const [connectionGui,setConnectionGui] = useState({img: signal,color: '#00FF7F'});
+
 
     const handlePageChange =(page)=>{
         setPage(page);
@@ -20,6 +25,24 @@ export const ClientContainer =props=>{
        }
     }
 
+    useEffect(()=>{
+        if(props.socket){
+            props.socket.on('reconnect_attempt', () => {
+                // alert('lost connection! trying to reconnect')
+                
+              });
+          
+            props.socket.on('reconnect',()=>{
+                setConnectionGui({img: signal,color: '#00FF7F'});
+            });
+            props.socket.on('disconnect',()=>{
+                console.log('disconnected');
+                setConnectionGui({img: noSignal,color: 'red'});
+            });
+
+        }
+        
+    },[props.socket])
 
 
 
@@ -38,6 +61,7 @@ export const ClientContainer =props=>{
                 </div>
                 <CurrentAppContainer setApp={props.setApp} app={props.app} lang={lang} socket={props.socket} />
                 <h1 onTouchStart={e=>setInstWidth(100)} style={{position:'absolute',bottom:10,right:20,color:'black',backgroundColor:'white',border: '2px solid black',borderRadius:'100%',padding:'4vmin',width:'5vmin',height:'5vmin',display:'flex',justifyContent:'center',alignItems:'center',zIndex:'100'}}>?</h1>
+                <div  style={{position:'absolute',top:10,right:20,color:'black',backgroundColor:connectionGui.color,border: '2px solid black',borderRadius:'100%',padding:'4vmin',width:'5vmin',height:'5vmin',display:'flex',justifyContent:'center',alignItems:'center',zIndex:'100'}}><img alt='connection' width='25px' src={connectionGui.img} /></div>
             </div>
         );
         default:

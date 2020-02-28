@@ -72,6 +72,16 @@ const text ={
                     name: 'Pantalla de espera',
                     text: `Espera la siguente interacción`
                 }
+            },
+            groupChord: {
+                EN: {
+                    name: 'Group Chords',
+                    text: 'Listen to the conductor to play chords with everyone!'
+                },
+                ES: {
+                    name: 'Acordes Groupales',
+                    text: 'Escucha el conductor para tocar acordes con todos!'
+                }
             }
         }
     },

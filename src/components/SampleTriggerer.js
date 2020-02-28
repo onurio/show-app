@@ -1,6 +1,7 @@
 import React,{useState,useEffect,useRef} from 'react';
 import Tone from 'tone';
 import satie from '../samples/Satie.mp3';
+import water from '../samples/water.mp3';
 import { noteBgSchema } from '../utils/packTypes';
 import {hexToComplimentary} from '../utils/utils';
 import text from '../utils/text';
@@ -8,10 +9,11 @@ import text from '../utils/text';
 
 
 Tone.context.latencyHint = 'interactive';
-const waveform = new Tone.Analyser('waveform',1024);
+const waveform = new Tone.Analyser('waveform',256);
 
 var sampler = new Tone.Sampler({
   "C3" : satie,
+  'C4': water
 }).chain(waveform).toMaster();
 
 sampler.volume.value = -10;
@@ -35,7 +37,7 @@ export const SampleTriggerer = (props) =>{
     let bg = msg.bg;
     setBgColor(bg);
     setTextColor(hexToComplimentary(bg))
-    sampler.triggerAttack('C3');
+    sampler.triggerAttack('C4');
   }
   
 
@@ -65,7 +67,7 @@ export const SampleTriggerer = (props) =>{
       canvasCtx.clearRect(0, 0, window.innerWidth*2, window.innerHeight*2);
       canvasCtx.fillRect(0,0,window.innerWidth*2, window.innerHeight*2);
       canvasCtx.beginPath();
-      for (var i = 0; i < waveArray.length; i+=4) {
+      for (var i = 0; i < waveArray.length; i++) {
         let x= (i/waveArray.length)*(window.innerWidth*2);
         if (i === 0) {
           canvasCtx.moveTo(0,(window.innerHeight)+ waveArray[i]);

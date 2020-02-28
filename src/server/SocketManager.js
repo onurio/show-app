@@ -1,6 +1,6 @@
 const io = require('./index.js').io;
 var sp = require('schemapack');
-const {USER_JOINED,ADMIN_JOINED,MIDIIN,MAXADMIN_JOINED,USER_STATE_CHANGED,SEND_USER_LIST,MIDIOUT,VISUAL_JOINED} = require('../Events.js');
+const {USER_JOINED,ADMIN_JOINED,MIDIIN,MAXADMIN_JOINED,USER_STATE_CHANGED,SEND_USER_LIST,MIDIOUT,VISUAL_JOINED,USER_RECONNECT,CTLIN} = require('../Events.js');
 const {midiMessageSchema,stringSchema,intSchema,noteBgSchema} = require('../utils/packTypes');
 const connectedUsers = {};
 const idName={};
@@ -8,10 +8,10 @@ const {rainbow} = require('../utils/utils');
 
 let pianoCounter = 0;
 let pingPongCounter = 0;
+let pingPongStatus = false;
 let idList = [];
 let notes = {};
-let maxAdmin;
-let Admin;
+
 
 let activePlayers = {};
 let passivePlayers = {};
@@ -37,11 +37,13 @@ module.exports = (socket) =>{
         socket.emit(SEND_USER_LIST,idName);
     });
 
+
     socket.on(USER_STATE_CHANGED,(state)=>{
         console.log(state);
     });
 
     socket.on(MAXADMIN_JOINED,()=>{
+        socket.name = 'maxAdmin';
         socket.join('maxadmin');
         console.log(`max admin ${socket.id} joined`);
         
@@ -53,6 +55,7 @@ module.exports = (socket) =>{
     });
 
     socket.on(VISUAL_JOINED,()=>{
+        socket.name = 'maxVisuals';
         console.log(`visual ${socket.id} joined`);
         socket.join('visual');
     });
@@ -68,14 +71,28 @@ module.exports = (socket) =>{
         io.to('admin').emit(SEND_USER_LIST,idName);
     });
 
+
+
+    socket.on(USER_RECONNECT,(name)=>{
+        socket.name = name;
+        console.log(`user ${name} has reconnected`);
+        connectedUsers[socket.id] = socket;
+        idList = [...Object.keys(connectedUsers)];
+        idName[name] = socket.id;
+        socket.join('general');
+        // io.to('admin').emit('users',idList);
+        io.to('admin').emit(SEND_USER_LIST,idName);
+    });
+
     
     socket.on(MIDIIN,(msg)=>{
         switch(appName){
             case 'phonePiano':
-                playNotes(midiMessageSchema.decode(msg)); 
+                playNotes(midiMessageSchema.decode(msg));                                 
                 break;
             case 'sampleTriggerer':
-                if(midiMessageSchema.decode(msg)[1]>0){
+                if(midiMessageSchema.decode(msg)[1]>0){;
+                    
                     io.sockets.binary(true).emit('noteon',noteBgSchema.encode({note: msg,bg:rainbow(Math.round(Math.random()*20),Math.random()*20) }));
                     // io.sockets.binary(true).emit('bg',stringSchema.encode(rainbow(Math.round(Math.random()*8),Math.random()*8)));
                 }
@@ -86,10 +103,21 @@ module.exports = (socket) =>{
         
     });
 
+    socket.on(CTLIN,(msg)=>{
+        io.to('general').binary(true).emit(CTLIN,msg);
+    });
+
+
+    socket.on(MIDIOUT,(msg)=>{
+        msg = midiMessageSchema.decode(msg);
+        msg[0] = msg[0] + 2*idList.indexOf(socket.id);        
+        io.to('maxadmin').emit(MIDIOUT,msg);
+        
+    });
 
     socket.on('pi',()=>{
         clearInterval(pingPongInterval);
-        io.to('maxadmin').emit(MIDIOUT,intSchema.encode(1));
+        io.to('maxadmin').emit(MIDIOUT,intSchema.encode(idList.indexOf(socket.id)));
         io.to('visual').emit(MIDIOUT);
         pingPong();
         io.to('spectators').binary(false).emit('bg',stringSchema.encode(rainbow(Math.round(Math.random()*8),Math.random()*8)));
@@ -97,13 +125,14 @@ module.exports = (socket) =>{
 
     socket.on('pim',()=>{
         clearInterval(pingPongInterval);        
-        io.to('maxadmin').emit(MIDIOUT,intSchema.encode(2));
+        io.to('maxadmin').emit(MIDIOUT,intSchema.encode(128));
         pingPong();
     });
 
 
     socket.on('pipo_start',()=>{
         // pingPongSafety();
+        pingPongStatus = true;
         activePlayers = {...connectedUsers};  
         activeIdList = Object.keys(activePlayers);    
         pingPong();
@@ -114,7 +143,7 @@ module.exports = (socket) =>{
     
 
     socket.on('pipo_stop',()=>{
-        console.log('stopppped');
+        pingPongStatus = false;
     });
 
     socket.on('pingPong_dis',(id)=>{
@@ -168,14 +197,28 @@ module.exports = (socket) =>{
     
     
     socket.on('disconnect',()=>{
-        if(socket.name){
-            delete idName[socket.name];
-            delete activePlayers[socket.id];
-            activeIdList = [...Object.keys(activePlayers)];
-            delete connectedUsers[socket.id];
-            idList = [...Object.keys(connectedUsers)];
-            io.to('admin').emit(SEND_USER_LIST,idName);
-            console.log(`user ${socket.name} disconnected`);
+        
+
+        switch(socket.name){
+            case 'maxAdmin':
+                console.log('maxAdmin disconnected');
+                break;
+            case 'maxVisuals':
+                console.log('maxVisuals disconnected');
+                break;
+            default:
+                if(socket.name){
+                    delete idName[socket.name];
+                    delete activePlayers[socket.id];
+                    activeIdList = [...Object.keys(activePlayers)];
+                    delete connectedUsers[socket.id];
+                    idList = [...Object.keys(connectedUsers)];
+                    io.to('admin').emit(SEND_USER_LIST,idName);
+                    console.log(`user ${socket.name} disconnected`);
+                }else{
+                    console.log(socket.id);         
+                }
+                break;
         }
         
     });
@@ -205,7 +248,7 @@ const playNotes = (note) =>{
 
 
 const pingPong=()=>{
-    if(activeIdList.length>1){
+    if(activeIdList.length>1 && pingPongStatus === true){
         activePlayers[activeIdList[pingPongCounter]].emit('po');
         pingPongCounter++;
         pingPongCounter = pingPongCounter % activeIdList.length;

@@ -9,6 +9,7 @@ import Tone from 'tone';
 import {WakeLock} from './components/WakeLock';
 
 
+
 const socketURL = 'http://192.168.1.3:4000';
 
 
@@ -20,6 +21,8 @@ function App() {
   const [socket,setSocket] = useState(null);
   // const [name,setName]=useState('');
   const [app,setApp] = useState('waitingScreen');
+  
+
 
 
   const preventZoom =e=>{
@@ -54,6 +57,10 @@ function App() {
       socket.binaryType = 'arraybuffer';
     });
     socket.connect();
+
+    
+
+    
 
     socket.on('app',appName=>setApp(stringSchema.decode(appName)));
     setSocket(socket);

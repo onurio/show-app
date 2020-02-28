@@ -1,5 +1,5 @@
 import React,{useState} from 'react';
-import {USER_JOINED} from '../Events';
+import {USER_JOINED,USER_RECONNECT} from '../Events';
 import Tone from 'tone';
 import './Join.css'
 import text from '../utils/text';
@@ -10,6 +10,9 @@ export const Join=(props)=> {
     const handleJoin =()=>{
       props.socket.emit(USER_JOINED,name);
       props.socket.emit('getApp');
+      props.socket.on('reconnect',()=>{
+        props.socket.emit(USER_RECONNECT,name)
+      })
       props.changePage('currentAppContainer');
       if (Tone.context.state !== 'running') {
         Tone.context.resume();

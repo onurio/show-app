@@ -5,6 +5,7 @@ import {SampleTriggerer} from '../components/SampleTriggerer';
 import { PingPong } from '../components/PingPong';
 import { PingPongSpectator } from '../components/PingPongSpectator';
 import { WaitingScreen } from '../components/WaitingScreen';
+import { GroupChord } from '../components/GroupChord';
 
 export const CurrentAppContainer = (props) =>{
     useEffect(()=>{
@@ -21,6 +22,8 @@ export const CurrentAppContainer = (props) =>{
             return <PingPongSpectator setApp={props.setApp} lang={props.lang} socket={props.socket} />;
         case 'waitingScreen':
             return <WaitingScreen lang={props.lang} />
+        case 'groupChord':
+            return <GroupChord land={props.lang} socket={props.socket}/>
         default:
             return <WaitingScreen lang={props.lang} />;
     };

@@ -110,7 +110,7 @@ export const PingPong =props=>{
         }
         
         let count = 2;
-        interval = setInterval(function() { handleTimer(count); }, 800);
+        interval = setInterval(function() { handleTimer(count); }, 300);
     }
       
 

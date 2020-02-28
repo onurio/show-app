@@ -5,7 +5,7 @@ import {rainbow } from '../utils/utils';
 
 
 Tone.context.latencyHint = 'interactive';
-const waveform = new Tone.Analyser('waveform',1024);
+const waveform = new Tone.Analyser('waveform',512);
 
 
 
@@ -13,16 +13,58 @@ const waveform = new Tone.Analyser('waveform',1024);
 
 const delay = new Tone.FeedbackDelay().toMaster();
 const tremolo = new Tone.Tremolo();
-let synth = new Tone.PolySynth(6, Tone.Synth, {oscillator: {type:'triangle'}}).chain(tremolo,delay,waveform);
-synth.volume.value = -5;
-synth.set({
-  "envelope" : {
-    "attack" : 0.1,
-    decay : 0.3 ,
-    sustain : 0.3 ,
-    release : 0.05
+let synth = new Tone.PolySynth(6, Tone.DuoSynth, {
+  vibratoAmount  : 0.2 ,
+  vibratoRate  : 3 ,
+  harmonicity  : 3/2 ,
+  voice0  : {
+  volume  : -10 ,
+  portamento  : 0 ,
+  oscillator  : {
+  type  : 'sine'
+  }  ,
+  filterEnvelope  : {
+  attack  : 0.05 ,
+  decay  : 0 ,
+  sustain  : 1 ,
+  release  : 0.5
+  }  ,
+  envelope  : {
+  attack  : 0.05 ,
+  decay  : 0 ,
+  sustain  : 1 ,
+  release  : 0.5
   }
-});
+  }  ,
+  voice1  : {
+  volume  : -10 ,
+  portamento  : 0 ,
+  oscillator  : {
+  type  : 'square'
+  }  ,
+  filterEnvelope  : {
+  attack  : 0.01 ,
+  decay  : 0 ,
+  sustain  : 1 ,
+  release  : 0.5
+  }  ,
+  envelope  : {
+  attack  : 0.05 ,
+  decay  : 0 ,
+  sustain  : 1 ,
+  release  : 0.5
+  }
+  }
+  }).chain(tremolo,delay,waveform);
+synth.volume.value = -5;
+// synth.set({
+//   "envelope" : {
+//     "attack" : 0.1,
+//     decay : 0.3 ,
+//     sustain : 0.3 ,
+//     release : 0.05
+//   }
+// });
 
 
 
@@ -44,9 +86,13 @@ export const PhonePiano = (props) =>{
     useEffect(()=>{
       switch(mode){
         case 'free':
+          
+          
           props.socket.off('noteon');
           props.socket.on('noteon',(note)=>{
+
             note = midiMessageSchema.decode(note);
+            console.log(note);
             let frq = Tone.Midi(note[0]).toFrequency();
             synth.triggerAttack(frq);
             setCurrentNote(Tone.Frequency(frq).toNote()); 
@@ -55,6 +101,7 @@ export const PhonePiano = (props) =>{
           });
           props.socket.on('noteoff',(note)=>{
             note = midiMessageSchema.decode(note);
+            console.log(note);
             if(mode=== 'free'){
               synth.triggerRelease(Tone.Midi(note[0]).toFrequency());
               setCurrentNote('');
@@ -105,7 +152,7 @@ export const PhonePiano = (props) =>{
       // console.log(bgColor);
       canvasCtx.fillRect(0,0,window.innerWidth*2, window.innerHeight*2);
       canvasCtx.beginPath();
-      for (var i = 0; i < waveArray.length; i+=4) {
+      for (var i = 0; i < waveArray.length; i++) {
         let x= (i/waveArray.length)*(window.innerWidth*2);
         if (i === 0) {
           canvasCtx.moveTo(0,(window.innerHeight)+ waveArray[i]);
