@@ -10,7 +10,7 @@ import {WakeLock} from './components/WakeLock';
 
 
 
-const socketURL = 'http://192.168.1.3:4000';
+const socketURL = 'http://192.168.1.5:4000/';
 
 
 
@@ -19,10 +19,7 @@ const socketURL = 'http://192.168.1.3:4000';
 
 function App() {
   const [socket,setSocket] = useState(null);
-  // const [name,setName]=useState('');
   const [app,setApp] = useState('waitingScreen');
-  
-
 
 
   const preventZoom =e=>{

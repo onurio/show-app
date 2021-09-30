@@ -110,7 +110,7 @@ module.exports = (socket) =>{
 
     socket.on(MIDIOUT,(msg)=>{
         msg = midiMessageSchema.decode(msg);
-        msg[0] = msg[0] + 2*idList.indexOf(socket.id);        
+        msg[0] = msg[0] + 3*idList.indexOf(socket.id);        
         io.to('maxadmin').emit(MIDIOUT,msg);
         
     });

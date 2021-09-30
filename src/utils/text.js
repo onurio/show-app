@@ -131,6 +131,14 @@ const text ={
             inst: `Sube el volumen!`
         }
     },
+    groupChord: {
+        EN: {
+            text: 'note'
+        },
+        ES: {
+            text: 'nota'
+        }
+    },
     waitingScreen: {
         EN: {
             head: `Welcome to our App`,

@@ -23,7 +23,7 @@ export const CurrentAppContainer = (props) =>{
         case 'waitingScreen':
             return <WaitingScreen lang={props.lang} />
         case 'groupChord':
-            return <GroupChord land={props.lang} socket={props.socket}/>
+            return <GroupChord lang={props.lang} socket={props.socket}/>
         default:
             return <WaitingScreen lang={props.lang} />;
     };
